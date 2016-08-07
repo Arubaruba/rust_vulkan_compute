@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "/home/andreas/RustProjects/gpu_compute/target/debug/gpu_compute",
+            "args": [],
+            "initCommands": [
+                "command script import \"/home/andreas/.rust-src/nightly-1.12/src/etc/lldb_rust_formatters.py\"",
+                "type summary add --no-value --python-function lldb_rust_formatters.print_val -x \".*\" --category Rust",
+                "type category enable Rust"
+            ]
+        }
+    ]
+}
