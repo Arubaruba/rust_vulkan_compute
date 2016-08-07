@@ -4,11 +4,11 @@
 #extension GL_ARB_shading_language_420pack : enable
 
 layout(set = 0, binding = 0) buffer Data {
-    uint asdf;
-} uniforms;
+    int asdf;
+    int arr[2];
+} buffers;
 
 void main()
 {	
-    
-    uniforms.asdf = uniforms.asdf + 900000;
+    buffers.arr[0] = buffers.arr[1];
 }

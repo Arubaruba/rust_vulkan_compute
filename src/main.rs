@@ -7,10 +7,14 @@ use vulkano::command_buffer::PrimaryCommandBufferBuilder;
 use vulkano::device::Device;
 use vulkano::instance::Instance;
 use vulkano::instance::InstanceExtensions;
-use vulkano::pipeline::ComputePipeline;
+use vulkano::pipeline::ComputePipeline; 
+use vulkano::instance::Limits;
 
-use std::sync::Arc;
 use std::time::Duration;
+
+mod cs {
+    include!{concat!(env!("OUT_DIR"), "/shaders/src/compute.glsl")}
+}
 
 fn main() {
     let instance = Instance::new(None, &InstanceExtensions::none(), None)
@@ -42,17 +46,22 @@ fn main() {
             .expect("failed to create device")
     };
 
+    println!("Max Compute Workers: {:?}", physical.limits().max_compute_work_group_count());
+    println!("Max Compute Group Size: {:?}", physical.limits().max_compute_work_group_size());
+
+    // Enumerating memory heaps.
+    for heap in physical.memory_heaps() {
+        println!("Heap #{:?} has a capacity of {:?} bytes",
+                 heap.id(),
+                 heap.size());
+    }
+
     let queue = queues.next().unwrap();
 
-    mod cs {
-        include!{concat!(env!("OUT_DIR"), "/shaders/src/compute.glsl")}
-    }
-    let cs = cs::Shader::load(&device).expect("failed to create shader module");
-
-    let storage_buffer = CpuAccessibleBuffer::from_data(&device,
+    let storage_buffer = CpuAccessibleBuffer::<cs::ty::Data>::from_data(&device,
                                                         &vulkano::buffer::BufferUsage::all(),
                                                         Some(queue.family()),
-                                                        1234usize)
+                                                        cs::ty::Data {asdf: 12i32, arr: [11i32, 22i32]})
         .expect("failed to create buffer");
 
 
@@ -60,30 +69,40 @@ fn main() {
     mod pipeline_layout {
         pipeline_layout!{
             set0: {
-                asdf: StorageBuffer<usize>
+                buffer: StorageBuffer<::cs::ty::Data>  
             }
         }
     }
 
+    let cs = cs::Shader::load(&device).expect("failed to create shader module");
+
     println!("initial buffer val: {}",
-             *storage_buffer.read(Duration::new(1, 0)).unwrap());
+             storage_buffer.read(Duration::new(1, 0)).unwrap().asdf);
 
     let pipeline_layout = pipeline_layout::CustomPipeline::new(&device).unwrap();
     let set = pipeline_layout::set0::Set::new(&descriptor_pool,
                                               &pipeline_layout,
                                               &pipeline_layout::set0::Descriptors {
-                                                  asdf: &storage_buffer,
+                                                  buffer: &storage_buffer,
                                               });
 
     let pipeline = ComputePipeline::new(&device, &pipeline_layout, &cs.main_entry_point(), &())
         .unwrap();
 
     let command_buffer = PrimaryCommandBufferBuilder::new(&device, queue.family())
-        .dispatch(&pipeline, &set, [2, 1, 1], &())
+        .dispatch(&pipeline, &set, [10, 1, 1], &())
         .build();
 
     command_buffer::submit(&command_buffer, &queue).unwrap().wait(Duration::new(1, 0)).unwrap();
 
     println!("final buffer val: {}",
-             *storage_buffer.read(Duration::new(1, 0)).unwrap());
+             storage_buffer.read(Duration::new(1, 0)).unwrap().asdf);
+
+    command_buffer::submit(&command_buffer, &queue).unwrap().wait(Duration::new(1, 0)).unwrap();
+
+    println!("final buffer val: {}",
+             storage_buffer.read(Duration::new(1, 0)).unwrap().asdf);
+
+    println!("arr buffer val: {}",
+             storage_buffer.read(Duration::new(1, 0)).unwrap().arr[0]);
 }
