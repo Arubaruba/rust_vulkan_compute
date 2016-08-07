@@ -1,0 +1,15 @@
+[package]
+name = "gpu_compute"
+version = "0.1.0"
+authors = ["Andreas Stocker <shadowstep7@gmail.com>"]
+build = "build.rs"
+
+[dependencies]
+vulkano = {git = "https://github.com/tomaka/vulkano" }
+vulkano-win = {git = "https://github.com/tomaka/vulkano" }
+vulkano-shaders = {git = "https://github.com/tomaka/vulkano" }
+winit = "0.5.1"
+
+[build-dependencies]
+vk-sys = {git = "https://github.com/tomaka/vulkano" }
+vulkano-shaders = {git = "https://github.com/tomaka/vulkano" }
